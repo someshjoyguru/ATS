@@ -1,40 +1,27 @@
 from dotenv import load_dotenv
-
 load_dotenv()
-import base64
+
 import streamlit as st
 import os
-import io
-from PIL import Image 
-import pdf2image
+import json
+import PyPDF2 as pdf
 import google.generativeai as genai
 
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 def get_gemini_response(input,pdf_content,prompt):
-    model=genai.GenerativeModel('gemini-pro-vision')
-    response=model.generate_content([input,pdf_content[0],prompt])
+    model=genai.GenerativeModel('gemini-pro')
+    response=model.generate_content(input)
     return response.text
 
-def input_pdf_setup(uploaded_file):
+def input_pdf_text(uploaded_file):
     if uploaded_file is not None:
-        ## Convert the PDF to image
-        images=pdf2image.convert_from_bytes(uploaded_file.read())
-
-        first_page=images[0]
-
-        # Convert to bytes
-        img_byte_arr = io.BytesIO()
-        first_page.save(img_byte_arr, format='PNG')
-        img_byte_arr = img_byte_arr.getvalue()
-
-        pdf_parts = [
-            {
-                "mime_type": "image/png",
-                "data": base64.b64encode(img_byte_arr).decode()  # encode to base64
-            }
-        ]
-        return pdf_parts
+        reader = pdf.PdfReader(uploaded_file)
+        text=""
+        for page in range(len(reader.pages)):
+            page=reader.pages[page]
+            text+=str(page.extract_text())
+        return text
     else:
         raise FileNotFoundError("No file uploaded")
 
@@ -57,10 +44,20 @@ submit1 = st.button("Tell Me About the Resume")
 submit3 = st.button("Percentage match")
 
 input_prompt1 = """
- You are an experienced Technical Human Resource Manager,your task is to review the provided resume against the job description. 
-  Please share your professional evaluation on whether the candidate's profile aligns with the role. 
- Highlight the strengths and weaknesses of the applicant in relation to the specified job requirements.
+ Hey Act Like a skilled or very experience ATS(Application Tracking System)
+with a deep understanding of tech field,software engineering,data science ,data analyst
+and big data engineer. Your task is to evaluate the resume based on the given job description.
+You must consider the job market is very competitive and you should provide 
+best assistance for improving thr resumes. Assign the percentage Matching based 
+on Jd and
+the missing keywords with high accuracy
+resume:{text}
+description:{jd}
+
+I want the response in one single string having the structure
+{{"JD Match":"%","MissingKeywords:[]","Profile Summary":""}}
 """
+
 
 input_prompt3 = """
 You are an skilled ATS (Applicant Tracking System) scanner with a deep understanding of data science and ATS functionality, 
@@ -70,8 +67,8 @@ the job description. First the output should come as percentage and then keyword
 
 if submit1:
     if uploaded_file is not None:
-        pdf_content=input_pdf_setup(uploaded_file)
-        response=get_gemini_response(input_prompt1,pdf_content,input_text)
+        text=input_pdf_text(uploaded_file)
+        response=get_gemini_response(input_prompt1)
         st.subheader("The Repsonse is")
         st.write(response)
     else:
@@ -79,8 +76,8 @@ if submit1:
 
 elif submit3:
     if uploaded_file is not None:
-        pdf_content=input_pdf_setup(uploaded_file)
-        response=get_gemini_response(input_prompt3,pdf_content,input_text)
+        text=input_pdf_text(uploaded_file)
+        response=get_gemini_response(input_prompt3)
         st.subheader("The Repsonse is")
         st.write(response)
     else:
