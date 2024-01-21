@@ -39,16 +39,46 @@ I want the response in one single string having the structure
 {{"JD Match":"%","MissingKeywords:[]","Profile Summary":""}}
 """
 
+input_prompt3 = """
+You are an skilled ATS (Applicant Tracking System) scanner with a deep understanding of data science and ATS functionality, 
+your task is to evaluate the resume against the provided job description. give me the percentage of match if the resume matches
+the job description. First the output should come as percentage and then keywords missing and last final thoughts.
+"""
+
 ## streamlit app
-st.title("Smart ATS")
-st.text("Improve Your Resume ATS")
-jd=st.text_area("Paste the Job Description")
+
+st.set_page_config(page_title="ATS Resume EXpert")
+st.header("ATS Tracking System")
+jd=st.text_area("Job Description: ",key="input")
 uploaded_file=st.file_uploader("Upload Your Resume",type="pdf",help="Please uplaod the pdf")
 
-submit = st.button("Submit")
+if uploaded_file is not None:
+    st.write("PDF Uploaded Successfully")
+
+submit = st.button("Tell Me About the Resume")
 
 if submit:
     if uploaded_file is not None:
         text=input_pdf_text(uploaded_file)
         response=get_gemini_repsonse(input_prompt)
-        st.subheader(response)
+        # Parse the generated JSON string
+        try:
+            response_json = json.loads(response)
+        except json.JSONDecodeError as e:
+            st.error(f"Error decoding JSON: {e}")
+            response_json = {}
+
+        # Display the output using Streamlit
+        st.subheader("ATS Resume Evaluation Result")
+        
+        if "JD Match" in response_json:
+            st.write(f"JD Match: {response_json['JD Match']}%")
+
+        if "MissingKeywords" in response_json:
+            st.write(f"Missing Keywords: {', '.join(response_json['MissingKeywords'])}")
+
+        if "Profile Summary" in response_json:
+            st.write(f"Profile Summary: {response_json['Profile Summary']}")
+    else:
+        st.write("Please upload the resume")
+
