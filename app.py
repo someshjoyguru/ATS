@@ -25,12 +25,12 @@ def input_pdf_setup(uploaded_file):
 
         # Convert to bytes
         img_byte_arr = io.BytesIO()
-        first_page.save(img_byte_arr, format='JPEG')
+        first_page.save(img_byte_arr, format='PNG')
         img_byte_arr = img_byte_arr.getvalue()
 
         pdf_parts = [
             {
-                "mime_type": "image/jpeg",
+                "mime_type": "image/png",
                 "data": base64.b64encode(img_byte_arr).decode()  # encode to base64
             }
         ]
